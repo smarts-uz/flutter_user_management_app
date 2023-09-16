@@ -1,0 +1,2 @@
+/// get packages
+flutter pub add supabase_flutter
