@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:user_management/components/avatar.dart';
 import 'package:user_management/main.dart';
 
 class AccountPage extends StatefulWidget {
@@ -13,6 +14,7 @@ class _AccountPageState extends State<AccountPage> {
   final _usernameController = TextEditingController();
   final _websiteController = TextEditingController();
 
+  String? _avatarUrl;
   var _loading = true;
 
   /// Called once a user id is received within `onAuthenticated()`
@@ -30,6 +32,7 @@ class _AccountPageState extends State<AccountPage> {
           .single();
       _usernameController.text = (data['username'] ?? '') as String;
       _websiteController.text = (data['website'] ?? '') as String;
+      _avatarUrl = (data['avatar_url'] ?? '') as String;
     } on PostgrestException catch (error) {
       if (context.mounted) {
         SnackBar(
@@ -121,6 +124,43 @@ class _AccountPageState extends State<AccountPage> {
     }
   }
 
+  /// Called when image has been uploaded to Supabase storage from within Avatar widget
+  Future<void> _onUpload(String imageUrl) async {
+    try {
+      final userId = supabase.auth.currentUser!.id;
+      await supabase.from('profiles').upsert({
+        'id': userId,
+        'avatar_url': imageUrl,
+      });
+      if (mounted) {
+        const SnackBar(
+          content: Text('Updated your profile image!'),
+        );
+      }
+    } on PostgrestException catch (error) {
+      if (context.mounted) {
+        SnackBar(
+          content: Text(error.message),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        );
+      }
+    } catch (error) {
+      if (context.mounted) {
+        SnackBar(
+          content: const Text('Unexpected error occurred'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        );
+      }
+    }
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _avatarUrl = imageUrl;
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -143,6 +183,11 @@ class _AccountPageState extends State<AccountPage> {
           : ListView(
               padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
               children: [
+                Avatar(
+                  imageUrl: _avatarUrl,
+                  onUpload: _onUpload,
+                ),
+                const SizedBox(height: 18),
                 TextFormField(
                   controller: _usernameController,
                   decoration: const InputDecoration(labelText: 'User Name'),
