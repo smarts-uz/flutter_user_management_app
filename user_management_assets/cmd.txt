@@ -1,2 +1,3 @@
 /// get packages
 flutter pub add supabase_flutter
+flutter pub add image_picker
